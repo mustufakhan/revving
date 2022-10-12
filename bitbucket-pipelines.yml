@@ -1,0 +1,53 @@
+pipelines:
+  branches:
+    develop:
+      - step:
+          name: Deploy on Test server
+          deployment: Revving_TEST
+          script:
+            - pipe: atlassian/ssh-run:0.3.0
+              variables:
+                SSH_USER: 'ubuntu'
+                SERVER: '35.177.76.148'
+                COMMAND: >
+                  cd /home/ubuntu/src/ && sudo git pull https://$GITUSER:$GITPASS@bitbucket.org/revvingadmin/frontend.git &&
+                  cd /home/ubuntu/ && sudo cp -r .env src/ &&
+                  cd /home/ubuntu/src/ && sudo yarn install &&
+                  cd /home/ubuntu/src/ && sudo yarn build &&
+                  sudo systemctl restart clientyarn.service
+
+                MODE: 'command'
+
+      - step:
+         name: Deploy on Stage server
+         deployment: Revving_STAGING
+         trigger: manual
+         script:
+           - pipe: atlassian/ssh-run:0.3.0
+             variables:
+              SSH_USER: 'ubuntu'
+              SERVER: '35.177.76.148'
+              COMMAND: >
+                 cd /home/qa/src && sudo git pull https://$GITUSER:$GITPASS@bitbucket.org/revvingadmin/frontend.git &&
+                 cd /home/qa/ && sudo cp -r .env src/ &&
+                 cd /home/qa/src/ && sudo yarn install &&
+                 cd /home/qa/src/ && sudo yarn build &&
+                 sudo systemctl restart qa_yarn.service
+                 
+              MODE: 'command' 
+
+      - step:
+          name: Deploy on Prod server
+          deployment: Revving_PRODUCTION
+          trigger: manual
+          script:
+            - pipe: atlassian/ssh-run:0.3.0
+              variables:
+                SSH_USER: 'prod'
+                SERVER: '18.169.203.213'
+                COMMAND: >
+                  cd /home/prod/src/ && sudo git pull https://$GITUSER:$GITPASS@bitbucket.org/revvingadmin/frontend.git &&
+                  cd /home/prod/src/ && sudo yarn install &&
+                  cd /home/prod/src/ && sudo yarn build &&
+                  sudo systemctl restart prod_yarn.service
+                MODE: 'command'
